@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChatMessage, Client, IncomingMessage } from "../types/chat";
+import { useChatStore } from "../store/chatStore";
+import { getChatKey } from "../utils/chatKey";
 
 const WS_URL =
   "wss://o3tx97i0uc.execute-api.us-east-1.amazonaws.com/dev";
 
 export function useWebSocket(nickname: string) {
   const socketRef = useRef<WebSocket | null>(null);
+  const { me, addMessage, ensureChat, setClients } = useChatStore();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
 
   useEffect(() => {
     const socket = new WebSocket(
@@ -28,11 +30,16 @@ export function useWebSocket(nickname: string) {
 
       switch (data.type) {
         case "message":
+          const { sender, message } = data.payload;
+          const chatKey = getChatKey(me, sender);
+          ensureChat(chatKey, [me, sender]);
+          addMessage(chatKey, { sender, message });
           setMessages((prev) => [...prev, data.payload]);
           break;
 
         case "clients":
-          setClients(data.payload);
+          const nicknames = data.payload.map((c: Client) => c.nickname);
+          setClients(nicknames);
           break;
 
         default:
@@ -51,7 +58,7 @@ export function useWebSocket(nickname: string) {
     return () => {
       socket.close();
     };
-  }, [nickname]);
+  }, [nickname, me, addMessage, ensureChat, setClients]);
 
   const sendMessage = (
     recipientNickname: string,
@@ -72,7 +79,6 @@ export function useWebSocket(nickname: string) {
 
   return {
     messages,
-    clients,
     sendMessage,
   };
 }
