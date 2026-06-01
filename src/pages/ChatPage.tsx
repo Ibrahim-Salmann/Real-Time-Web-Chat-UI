@@ -7,7 +7,6 @@ import { useChatStore } from "../store/chatStore";
 export default function ChatPage() {
   const nickname = "ibrahim";
   const { activeChat } = useChatStore();
-
   const { sendMessage } = useWebSocket(nickname);
 
   return (
