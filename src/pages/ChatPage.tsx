@@ -5,9 +5,8 @@ import MessageInput from "../components/layout/MessageInput";
 import { useChatStore } from "../store/chatStore";
 
 export default function ChatPage() {
-  const nickname = "ibrahim";
-  const { activeChat } = useChatStore();
-  const { sendMessage } = useWebSocket(nickname);
+  const { me, activeChatKey } = useChatStore();
+  const { sendMessage } = useWebSocket(me);
 
   return (
     <div className="h-screen bg-zinc-900 text-white flex">
@@ -18,7 +17,7 @@ export default function ChatPage() {
 
         <MessageInput
           onSend={(msg) => {
-            if (activeChat) sendMessage(activeChat, msg);
+            if (activeChatKey) sendMessage(activeChatKey, msg);
           }}
         />
       </div>

@@ -1,74 +1,74 @@
 import { create } from "zustand";
-
-export type Message = {
-  sender: string;
-  message: string;
-};
+import type { ChatMessage } from "../types/chat";
 
 type Chat = {
-  chatKey: string;
   participants: string[];
-  messages: Message[];
+  messages: ChatMessage[];
 };
 
 type ChatState = {
   me: string;
-  activeChat: string | null;
+
   clients: string[];
 
   chats: Record<string, Chat>;
 
-  setMe: (name: string) => void;
+  activeChatKey: string | null;
+
+  setMe: (me: string) => void;
   setClients: (clients: string[]) => void;
 
   setActiveChat: (chatKey: string) => void;
 
-  addMessage: (chatKey: string, message: Message) => void;
   ensureChat: (chatKey: string, participants: string[]) => void;
+
+  addMessage: (chatKey: string, message: ChatMessage) => void;
 };
 
-export const useChatStore = create<ChatState>((set) => ({
+export const useChatStore = create<ChatState>((set, get) => ({
   me: "",
-  activeChat: null,
   clients: [],
   chats: {},
+  activeChatKey: null,
 
   setMe: (me) => set({ me }),
 
   setClients: (clients) => set({ clients }),
 
-  setActiveChat: (chatKey) => set({ activeChat: chatKey }),
+  setActiveChat: (chatKey) =>
+    set({ activeChatKey: chatKey }),
 
-  ensureChat: (chatKey, participants) =>
-    set((state) => {
-      if (state.chats[chatKey]) return state;
+  ensureChat: (chatKey, participants) => {
+    const chats = get().chats;
 
-      return {
+    if (!chats[chatKey]) {
+      set({
         chats: {
-          ...state.chats,
+          ...chats,
           [chatKey]: {
-            chatKey,
             participants,
             messages: [],
           },
         },
-      };
-    }),
+      });
+    }
+  },
 
-  addMessage: (chatKey, message) =>
-    set((state) => {
-      const chat = state.chats[chatKey];
+  addMessage: (chatKey, message) => {
+    const chats = get().chats;
 
-      if (!chat) return state;
+    const chat = chats[chatKey];
 
-      return {
-        chats: {
-          ...state.chats,
-          [chatKey]: {
-            ...chat,
-            messages: [...chat.messages, message],
-          },
+    if (!chat) return;
+
+    set({
+      chats: {
+        ...chats,
+        [chatKey]: {
+          ...chat,
+          messages: [...chat.messages, message],
         },
-      };
-    }),
+      },
+    });
+  },
 }));

@@ -1,20 +1,43 @@
-import type { Client } from "../../types/chat";
+import { useChatStore } from "../../store/chatStore";
+import { getChatKey } from "../../utils/chatKey";
 
-interface Props {
-  clients: Client[];
-}
+export default function ClientList() {
+  const {
+    clients,
+    me,
+    activeChatKey,
+    setActiveChat,
+  } = useChatStore();
 
-export default function ClientList({ clients }: Props) {
   return (
     <div className="space-y-2">
-      {clients.map((c) => (
-        <div
-          key={c.nickname}
-          className="text-sm text-zinc-300"
-        >
-          {c.nickname}
-        </div>
-      ))}
+      {clients
+        .filter((c) => c !== me)
+        .map((nickname) => {
+          const chatKey = getChatKey(me, nickname);
+
+          const isActive =
+            activeChatKey === chatKey;
+
+          return (
+            <div
+              key={nickname}
+              onClick={() =>
+                setActiveChat(chatKey)
+              }
+              className={`
+                text-sm cursor-pointer p-2 rounded
+                ${
+                  isActive
+                    ? "bg-blue-500 text-white"
+                    : "text-zinc-300 hover:bg-zinc-800"
+                }
+              `}
+            >
+              {nickname}
+            </div>
+          );
+        })}
     </div>
   );
 }

@@ -58,7 +58,10 @@ export function useWebSocket(nickname: string) {
     return () => {
       socket.close();
     };
-  }, [nickname, me, addMessage, ensureChat, setClients]);
+  }, [nickname]); 
+  // Note: If using React 18 with automatic batching,  might not need to memoize `sendMessage`
+  // However, if  encounter issues, consider using `useCallback` for `sendMessage`
+  // remove me, addMessage, ensureChat, setClients from dependencies if they are stable (e.g., from Zustand store)
 
   const sendMessage = (
     recipientNickname: string,
