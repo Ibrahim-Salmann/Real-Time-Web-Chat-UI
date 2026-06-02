@@ -42,6 +42,13 @@ export function useWebSocket(nickname: string) {
           setClients(nicknames);
           break;
 
+        case "messages":
+          console.log(
+            "HISTORY:",
+            data.payload.messages
+          );
+          break;
+
         default:
           console.log("Unknown message type");
       }
@@ -74,7 +81,22 @@ export function useWebSocket(nickname: string) {
         action: "sendMessage",
         data: {
           recipientNickname,
+          recipient: recipientNickname,
           message,
+        },
+      })
+    );
+  };
+
+  const loadMessages = (targetNickname: string) => {
+    if (!socketRef.current) return;
+
+    socketRef.current.send(
+      JSON.stringify({
+        action: "getMessages",
+        data: {
+          targetNickname,
+          limit: 50,
         },
       })
     );
@@ -83,5 +105,6 @@ export function useWebSocket(nickname: string) {
   return {
     messages,
     sendMessage,
+    loadMessages,
   };
 }
