@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --alien-green: #00FF41;
+  --alien-black: #000000;
+  --alien-dark-green: #008F11;
+  --alien-dark-grey: #222222;
+  --alien-light-green: #8FFF8F;
+
+  --background: var(--alien-black);
+  --foreground: var(--alien-green);
+  --accent: var(--alien-green);
+  --border: var(--alien-dark-green);
+}
+
+body {
+  background-color: var(--alien-black);
+  color: var(--alien-green);
+  font-family: 'Courier New', Courier, monospace;
+  margin: 0;
+}
