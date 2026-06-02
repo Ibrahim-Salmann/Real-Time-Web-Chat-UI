@@ -3,10 +3,10 @@ import { useChatStore } from "../../store/chatStore";
 
 export default function MessageInput({ onSend }: { onSend: (msg: string) => void }) {
   const [text, setText] = useState("");
-  const { activeChat } = useChatStore();
+  const { activeChatKey } = useChatStore();
 
   const handleSend = () => {
-    if (!activeChat || !text.trim()) return;
+    if (!activeChatKey || !text.trim()) return;
 
     onSend(text);
     setText("");

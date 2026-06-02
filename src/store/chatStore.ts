@@ -4,6 +4,9 @@ import type { ChatMessage } from "../types/chat";
 type Chat = {
   participants: string[];
   messages: ChatMessage[];
+  lastMessage?: string;
+  unreadCount: number;
+
 };
 
 type ChatState = {
@@ -35,8 +38,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setClients: (clients) => set({ clients }),
 
-  setActiveChat: (chatKey) =>
-    set({ activeChatKey: chatKey }),
+  setActiveChat: (chatKey) => {
+    const chats = get().chats;
+
+    if (chats[chatKey]) {
+      chats[chatKey].unreadCount = 0;
+    }
+
+    set({ activeChatKey: chatKey, chats });
+  },
 
   ensureChat: (chatKey, participants) => {
     const chats = get().chats;
@@ -44,10 +54,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (!chats[chatKey]) {
       set({
         chats: {
-          ...chats,
+          ...chats, // Preserve existing chats
           [chatKey]: {
             participants,
             messages: [],
+            unreadCount: 0,
           },
         },
       });
@@ -61,12 +72,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     if (!chat) return;
 
+    const isActive = get().activeChatKey === chatKey;
+
     set({
       chats: {
         ...chats,
         [chatKey]: {
           ...chat,
           messages: [...chat.messages, message],
+          lastMessage: message.message,
+          unreadCount: isActive
+          ? 0 // If the chat is active, reset unread count
+          : chat.unreadCount + 1,
         },
       },
     });
