@@ -1,8 +1,19 @@
 import { useChatStore } from "../../store/chatStore";
 import MessageBubble from "../chat/MessageBubble";
+import { useEffect, useRef } from "react";
 
 export default function ChatWindow() {
-  const { chats, activeChatKey, me } = useChatStore();
+  const { chats, activeChatKey, me, isConnected } = useChatStore();
+
+  const chat = activeChatKey ? chats[activeChatKey] : null;
+  const messages = chat?.messages || [];
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages]);
 
   if (!activeChatKey) {
     return (
@@ -12,13 +23,17 @@ export default function ChatWindow() {
     );
   }
 
-  const chat = chats[activeChatKey];
-  const messages = chat?.messages || [];
   // Extract the recipient's name from the participants list
   const recipient = chat?.participants.find((p) => p !== me) || "Unknown";
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-zinc-900/30">
+      {!isConnected && (
+        <div className="bg-yellow-500 text-black text-center p-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] animate-pulse">
+          !! CONNECTION_LOST // ATTEMPTING_RECONNECTION !!
+        </div>
+      )}
+
       {/* Chat Header */}
       <div className="border-b border-[#008F11]/20 p-3 bg-black/40 backdrop-blur-sm">
         <div className="flex items-center gap-2">
@@ -36,6 +51,7 @@ export default function ChatWindow() {
             <MessageBubble message={m} isOwn={m.sender === me} />
           </div>
         ))}
+        <div ref={bottomRef} />
       </div>
     </div>
   );

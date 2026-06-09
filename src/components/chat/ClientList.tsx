@@ -12,6 +12,8 @@ export default function ClientList({ loadMessages }: ClientListProps) {
     chats,
     activeChatKey,
     setActiveChat,
+    unreadCounts,
+    clearUnread,
   } = useChatStore();
 
   return (
@@ -22,12 +24,14 @@ export default function ClientList({ loadMessages }: ClientListProps) {
           const chatKey = getChatKey(me, nickname);
           const chat = chats[chatKey];
           const isActive = activeChatKey === chatKey;
+          const unread = unreadCounts[nickname] || 0;
 
           return (
             <div
               key={nickname}
               onClick={() => {
                 setActiveChat(chatKey);
+                clearUnread(nickname);
                 // Only load history if we haven't already
                 if (!chat?.hasLoadedHistory) {
                   loadMessages(nickname);
@@ -63,10 +67,10 @@ export default function ClientList({ loadMessages }: ClientListProps) {
                   </span>
 
                   {/* Unread Badge */}
-                  {chat?.unreadCount > 0 && (
-                    <div className="bg-[#00FF41] text-black text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-[0_0_8px_#00FF41] flex-shrink-0">
-                      {chat.unreadCount}
-                    </div>
+                  {unread > 0 && (
+                    <span className="bg-[#00FF41] text-black text-[10px] font-black px-2 py-0.5 rounded-full shadow-[0_0_8px_#00FF41] flex-shrink-0">
+                      {unread}
+                    </span>
                   )}
                 </div>
               </div>

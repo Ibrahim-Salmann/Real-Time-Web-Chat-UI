@@ -8,9 +8,11 @@ const WS_URL =
 
 export function useWebSocket(nickname: string) {
   const socketRef = useRef<WebSocket | null>(null);
-  const { me, addMessage, ensureChat, setClients, setHistory } = useChatStore();
+  const { me, addMessage, ensureChat, setClients, setHistory, incrementUnread, setConnected } = useChatStore();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const socket = new WebSocket(
@@ -21,6 +23,8 @@ export function useWebSocket(nickname: string) {
 
     socket.onopen = () => {
       console.log("Connected");
+      setConnected(true);
+      setReconnectAttempts(0);
     };
 
     socket.onmessage = (event) => {
@@ -34,6 +38,13 @@ export function useWebSocket(nickname: string) {
           const chatKey = getChatKey(me, sender);
           ensureChat(chatKey, [me, sender]);
           addMessage(chatKey, { sender, message });
+
+          // WhatsApp logic: increment unread if chat is not active
+          const activeChatKey = useChatStore.getState().activeChatKey;
+          if (activeChatKey !== chatKey) {
+            incrementUnread(sender);
+          }
+
           setMessages((prev) => [...prev, data.payload]);
           break;
 
@@ -69,6 +80,14 @@ export function useWebSocket(nickname: string) {
 
     socket.onclose = () => {
       console.log("Disconnected");
+      setConnected(false);
+
+      // Exponential Backoff: 3s, 6s, 12s... (capped at 30s)
+      const delay = Math.min(3000 * Math.pow(2, reconnectAttempts), 30000);
+      
+      reconnectTimerRef.current = setTimeout(() => {
+        setReconnectAttempts((prev) => prev + 1);
+      }, delay);
     };
 
     socket.onerror = (error) => {
@@ -76,12 +95,10 @@ export function useWebSocket(nickname: string) {
     };
 
     return () => {
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       socket.close();
     };
-  }, [nickname]); 
-  // Note: If using React 18 with automatic batching,  might not need to memoize `sendMessage`
-  // However, if  encounter issues, consider using `useCallback` for `sendMessage`
-  // remove me, addMessage, ensureChat, setClients from dependencies if they are stable (e.g., from Zustand store)
+  }, [nickname, reconnectAttempts, me, setConnected]); 
 
   const sendMessage = (
     recipientNickname: string,

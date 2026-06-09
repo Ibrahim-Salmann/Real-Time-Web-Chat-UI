@@ -18,6 +18,14 @@ type ChatState = {
 
   activeChatKey: string | null;
 
+  isConnected: boolean;
+  setConnected: (status: boolean) => void;
+
+  unreadCounts: Record<string, number>;
+
+  incrementUnread: (nickname: string) => void;
+  clearUnread: (nickname: string) => void;
+
   setMe: (me: string) => void;
   setClients: (clients: string[]) => void;
 
@@ -35,19 +43,33 @@ export const useChatStore = create<ChatState>((set, get) => ({
   clients: [],
   chats: {},
   activeChatKey: null,
+  isConnected: false,
+  unreadCounts: {},
+
+  incrementUnread: (nickname) =>
+    set((state) => ({
+      unreadCounts: {
+        ...state.unreadCounts,
+        [nickname]: (state.unreadCounts[nickname] || 0) + 1,
+      },
+    })),
+
+  clearUnread: (nickname) =>
+    set((state) => ({
+      unreadCounts: {
+        ...state.unreadCounts,
+        [nickname]: 0,
+      },
+    })),
 
   setMe: (me) => set({ me }),
+
+  setConnected: (status) => set({ isConnected: status }),
 
   setClients: (clients) => set({ clients }),
 
   setActiveChat: (chatKey) => {
-    const chats = get().chats;
-
-    if (chats[chatKey]) {
-      chats[chatKey].unreadCount = 0;
-    }
-
-    set({ activeChatKey: chatKey, chats });
+    set({ activeChatKey: chatKey });
   },
 
   ensureChat: (chatKey, participants) => {
@@ -102,9 +124,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           ...chat,
           messages: [...chat.messages, message],
           lastMessage: message.message,
-          unreadCount: isActive
-          ? 0 // If the chat is active, reset unread count
-          : chat.unreadCount + 1,
+          unreadCount: 0, // Legacy field reset, now using unreadCounts record
         },
       },
     });
