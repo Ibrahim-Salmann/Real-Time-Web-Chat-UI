@@ -112,3 +112,19 @@ CloudWatch = security camera
      Records everything
 Serverless Framework = construction company
      Builds and configures all the AWS resources from your serverless.yml file.
+
+
+User clicks "Ali"
+       ↓
+Frontend requests history
+       ↓
+WebSocket sends getMessages
+       ↓
+Lambda queries DynamoDB GSI
+       ↓
+Messages returned
+       ↓
+Zustand stores history
+       ↓
+ChatWindow instantly displays conversation
+
