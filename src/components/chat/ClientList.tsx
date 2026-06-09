@@ -1,7 +1,11 @@
 import { useChatStore } from "../../store/chatStore";
 import { getChatKey } from "../../utils/chatKey";
 
-export default function ClientList() {
+interface ClientListProps {
+  loadMessages: (target: string) => void;
+}
+
+export default function ClientList({ loadMessages }: ClientListProps) {
   const {
     clients,
     me,
@@ -22,7 +26,13 @@ export default function ClientList() {
           return (
             <div
               key={nickname}
-              onClick={() => setActiveChat(chatKey)}
+              onClick={() => {
+                setActiveChat(chatKey);
+                // Only load history if we haven't already
+                if (!chat?.hasLoadedHistory) {
+                  loadMessages(nickname);
+                }
+              }}
               className={`
                 flex items-center gap-3
                 p-4 border-b border-[#008F11]/10 cursor-pointer

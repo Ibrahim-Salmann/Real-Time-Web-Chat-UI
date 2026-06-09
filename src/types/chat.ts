@@ -17,3 +17,15 @@ export interface OutgoingMessage {
   payload: any;
 }
 
+export type HistoryMessage = {
+  messageId: string;
+  sender: string;
+  recipient?: string;
+  message: string;
+  createdAt: number;
+};
+
+export type MessagesPayload = {
+  messages: HistoryMessage[];
+  lastEvaluatedKey?: unknown;
+};

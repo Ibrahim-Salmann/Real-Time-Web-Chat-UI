@@ -6,7 +6,7 @@ type Chat = {
   messages: ChatMessage[];
   lastMessage?: string;
   unreadCount: number;
-
+  hasLoadedHistory?: boolean;
 };
 
 type ChatState = {
@@ -26,6 +26,8 @@ type ChatState = {
   ensureChat: (chatKey: string, participants: string[]) => void;
 
   addMessage: (chatKey: string, message: ChatMessage) => void;
+
+  setHistory: (chatKey: string, messages: ChatMessage[]) => void;
 };
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -59,10 +61,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
             participants,
             messages: [],
             unreadCount: 0,
+            hasLoadedHistory: false,
           },
         },
       });
     }
+  },
+
+  setHistory: (chatKey, messages) => {
+    const chats = get().chats;
+    const chat = chats[chatKey];
+    if (!chat) return;
+
+    set({
+      chats: {
+        ...chats,
+        [chatKey]: {
+          ...chat,
+          messages: messages, // Overwrite with full history or merge logic
+          hasLoadedHistory: true,
+          lastMessage: messages.length > 0 ? messages[messages.length - 1].message : chat.lastMessage,
+        },
+      },
+    });
   },
 
   addMessage: (chatKey, message) => {

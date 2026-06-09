@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { ChatMessage, Client, IncomingMessage } from "../types/chat";
+import type { ChatMessage, Client, IncomingMessage, HistoryMessage } from "../types/chat";
 import { useChatStore } from "../store/chatStore";
 import { getChatKey } from "../utils/chatKey";
 
@@ -8,7 +8,7 @@ const WS_URL =
 
 export function useWebSocket(nickname: string) {
   const socketRef = useRef<WebSocket | null>(null);
-  const { me, addMessage, ensureChat, setClients } = useChatStore();
+  const { me, addMessage, ensureChat, setClients, setHistory } = useChatStore();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
 
@@ -43,10 +43,23 @@ export function useWebSocket(nickname: string) {
           break;
 
         case "messages":
-          console.log(
-            "HISTORY:",
-            data.payload.messages
-          );
+          const history: HistoryMessage[] = data.payload.messages;
+          if (history.length > 0) {
+            // Identify the conversation partner (the one who isn't 'me')
+            const first = history[0];
+            const otherUser = first.sender === me ? first.recipient : first.sender;
+            
+            if (otherUser) {
+              const chatKey = getChatKey(me, otherUser);
+              ensureChat(chatKey, [me, otherUser]);
+              
+              const formattedMessages = history.map((m) => ({
+                sender: m.sender,
+                message: m.message,
+              }));
+              setHistory(chatKey, formattedMessages);
+            }
+          }
           break;
 
         default:
