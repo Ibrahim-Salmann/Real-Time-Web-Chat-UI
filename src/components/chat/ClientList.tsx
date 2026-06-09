@@ -11,52 +11,55 @@ export default function ClientList() {
   } = useChatStore();
 
   return (
-    <div className="space-y-1">
+    <div className="flex-1 overflow-y-auto">
       {clients
         .filter((c) => c !== me)
         .map((nickname) => {
           const chatKey = getChatKey(me, nickname);
-
           const chat = chats[chatKey];
-
-          const isActive =
-            activeChatKey === chatKey;
+          const isActive = activeChatKey === chatKey;
 
           return (
             <div
               key={nickname}
-              onClick={() =>
-                setActiveChat(chatKey)
-              }
+              onClick={() => setActiveChat(chatKey)}
               className={`
-                flex justify-between items-center
-                p-3 border-b border-[#008F11]/20 cursor-pointer
-                transition
+                flex items-center gap-3
+                p-4 border-b border-[#008F11]/10 cursor-pointer
+                transition-all duration-200
                 ${
                   isActive
-                    ? "bg-[#00FF41]/20 text-[#8FFF8F] border-l-2 border-l-[#00FF41]"
-                    : "hover:bg-[#222222] text-[#00FF41]"
+                    ? "bg-[#00FF41]/10 text-[#8FFF8F] border-l-4 border-l-[#00FF41]"
+                    : "hover:bg-[#222222] text-[#00FF41] border-l-4 border-l-transparent"
                 }
               `}
             >
-              {/* Left side */}
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-bold uppercase tracking-wider font-mono">
-                  {nickname}
-                </span>
-
-                <span className="text-[10px] opacity-50 font-mono truncate max-w-[120px]">
-                  {chat?.lastMessage ||
-                    "No messages yet"}
-                </span>
+              {/* Avatar Placeholder */}
+              <div className="w-10 h-10 rounded-full border border-[#008F11] flex items-center justify-center flex-shrink-0 font-mono text-xs bg-[#1a1a1a]">
+                {nickname.charAt(0).toUpperCase()}
               </div>
 
-              {/* Right side (badge) */}
-              {chat?.unreadCount > 0 && (
-                <div className="bg-[#00FF41] text-black text-[10px] font-black px-1.5 py-0.5 rounded-sm shadow-[0_0_8px_#00FF41]">
-                  {chat.unreadCount}
+              {/* Chat Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-baseline mb-0.5">
+                  <span className="text-sm font-bold uppercase tracking-wider font-mono truncate">
+                    {nickname}
+                  </span>
                 </div>
-              )}
+
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-[10px] opacity-50 font-mono truncate">
+                    {chat?.lastMessage || "No messages yet"}
+                  </span>
+
+                  {/* Unread Badge */}
+                  {chat?.unreadCount > 0 && (
+                    <div className="bg-[#00FF41] text-black text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-[0_0_8px_#00FF41] flex-shrink-0">
+                      {chat.unreadCount}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           );
         })}
