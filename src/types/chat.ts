@@ -5,6 +5,7 @@ export interface Client {
 export interface ChatMessage {
   sender: string;
   message: string;
+  timestamp: number;
 }
 
 export interface IncomingMessage {

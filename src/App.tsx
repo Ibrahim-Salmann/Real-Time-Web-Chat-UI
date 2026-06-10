@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import ChatPage from "./pages/ChatPage";
-import LoginScreen from "./components/LoginScreen";
+import LoginScreen from "./pages/LoginScreen";
+import { useAuthStore } from "./store/authStore";
 import { useChatStore } from "./store/chatStore";
 
 export default function App() {
-  const [nickname, setNickname] = useState<string | null>(null);
+  const nickname = useAuthStore((state) => state.nickname);
   const setMe = useChatStore((state) => state.setMe);
 
+  // Sync the auth nickname with the chat store identity
   useEffect(() => {
     if (nickname) {
       setMe(nickname);
@@ -14,9 +16,7 @@ export default function App() {
   }, [nickname, setMe]);
 
   if (!nickname) {
-    return (
-      <LoginScreen onJoin={setNickname} />
-    );
+    return <LoginScreen onLogin={() => {}} />;
   }
 
   return <ChatPage />;

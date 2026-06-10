@@ -1,140 +1,81 @@
-import { useEffect, useRef, useState } from "react";
-import type { ChatMessage, Client, IncomingMessage, HistoryMessage } from "../types/chat";
-import { useChatStore } from "../store/chatStore";
-import { getChatKey } from "../utils/chatKey";
+import { useEffect, useRef, useCallback } from 'react';
+import { useChatStore } from '../store/chatStore';
 
-const WS_URL =
-  "wss://o3tx97i0uc.execute-api.us-east-1.amazonaws.com/dev";
+const WS_URL = "wss://o3tx97i0uc.execute-api.us-east-1.amazonaws.com/dev";
 
 export function useWebSocket(nickname: string) {
   const socketRef = useRef<WebSocket | null>(null);
-  const { me, addMessage, ensureChat, setClients, setHistory, incrementUnread, setConnected } = useChatStore();
+  const reconnectAttempts = useRef(0);
+  const { setConnected, addMessage, setClients, setHistory } = useChatStore();
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connect = useCallback(() => {
+    if (!nickname) return;
 
-  useEffect(() => {
-    const socket = new WebSocket(
-      `${WS_URL}?nickname=${nickname}`
-    );
-
+    const socket = new WebSocket(`${WS_URL}?nickname=${nickname}`);
     socketRef.current = socket;
 
     socket.onopen = () => {
-      console.log("Connected");
+      console.log("CONNECTED_TO_TERMINAL");
       setConnected(true);
-      setReconnectAttempts(0);
+      reconnectAttempts.current = 0;
     };
 
     socket.onmessage = (event) => {
-      const data: IncomingMessage = JSON.parse(event.data);
-
-      console.log("Received:", data);
+      const data = JSON.parse(event.data);
 
       switch (data.type) {
-        case "message":
-          const { sender, message } = data.payload;
-          const chatKey = getChatKey(me, sender);
-          ensureChat(chatKey, [me, sender]);
-          addMessage(chatKey, { sender, message });
-
-          // WhatsApp logic: increment unread if chat is not active
-          const activeChatKey = useChatStore.getState().activeChatKey;
-          if (activeChatKey !== chatKey) {
-            incrementUnread(sender);
-          }
-
-          setMessages((prev) => [...prev, data.payload]);
+        case "clients_list":
+          setClients(data.payload.clients);
           break;
-
-        case "clients":
-          const nicknames = data.payload.map((c: Client) => c.nickname);
-          setClients(nicknames);
+        case "new_message":
+          addMessage(data.payload.sender, data.payload);
           break;
-
-        case "messages":
-          const history: HistoryMessage[] = data.payload.messages;
-          if (history.length > 0) {
-            // Identify the conversation partner (the one who isn't 'me')
-            const first = history[0];
-            const otherUser = first.sender === me ? first.recipient : first.sender;
-            
-            if (otherUser) {
-              const chatKey = getChatKey(me, otherUser);
-              ensureChat(chatKey, [me, otherUser]);
-              
-              const formattedMessages = history.map((m) => ({
-                sender: m.sender,
-                message: m.message,
-              }));
-              setHistory(chatKey, formattedMessages);
-            }
-          }
+        case "history_result":
+          setHistory(data.payload.chatKey, data.payload.messages);
           break;
-
-        default:
-          console.log("Unknown message type");
       }
     };
 
     socket.onclose = () => {
-      console.log("Disconnected");
       setConnected(false);
+      const timeout = Math.min(30000, Math.pow(2, reconnectAttempts.current) * 1000);
+      console.warn(`CONNECTION_LOST. RECONNECTING_IN_${timeout}ms`);
 
-      // Exponential Backoff: 3s, 6s, 12s... (capped at 30s)
-      const delay = Math.min(3000 * Math.pow(2, reconnectAttempts), 30000);
-      
-      reconnectTimerRef.current = setTimeout(() => {
-        setReconnectAttempts((prev) => prev + 1);
-      }, delay);
+      setTimeout(() => {
+        reconnectAttempts.current++;
+        connect();
+      }, timeout);
     };
 
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    return () => {
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+    socket.onerror = (err) => {
+      console.error("TERMINAL_ERROR:", err);
       socket.close();
     };
-  }, [nickname, reconnectAttempts, me, setConnected]); 
+  }, [nickname, setConnected, setClients, addMessage, setHistory]);
 
-  const sendMessage = (
-    recipientNickname: string,
-    message: string
-  ) => {
-    if (!socketRef.current) return;
+  useEffect(() => {
+    connect();
+    return () => socketRef.current?.close();
+  }, [connect]);
 
-    socketRef.current.send(
-      JSON.stringify({
+  const sendMessage = useCallback((recipient: string, message: string) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      const payload = {
         action: "sendMessage",
-        data: {
-          recipientNickname,
-          recipient: recipientNickname,
-          message,
-        },
-      })
-    );
-  };
+        recipient,
+        message,
+        timestamp: Date.now()
+      };
+      socketRef.current.send(JSON.stringify(payload));
+      addMessage(recipient, { sender: nickname, message, timestamp: Date.now() });
+    }
+  }, [nickname, addMessage]);
 
-  const loadMessages = (targetNickname: string) => {
-    if (!socketRef.current) return;
+  const getHistory = useCallback((chatKey: string) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ action: "getHistory", chatKey }));
+    }
+  }, []);
 
-    socketRef.current.send(
-      JSON.stringify({
-        action: "getMessages",
-        data: {
-          targetNickname,
-          limit: 50,
-        },
-      })
-    );
-  };
-
-  return {
-    messages,
-    sendMessage,
-    loadMessages,
-  };
+  return { sendMessage, getHistory };
 }

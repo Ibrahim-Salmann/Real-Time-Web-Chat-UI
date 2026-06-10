@@ -7,6 +7,7 @@ type Chat = {
   lastMessage?: string;
   unreadCount: number;
   hasLoadedHistory?: boolean;
+  historyError?: string;
 };
 
 type ChatState = {
@@ -36,6 +37,8 @@ type ChatState = {
   addMessage: (chatKey: string, message: ChatMessage) => void;
 
   setHistory: (chatKey: string, messages: ChatMessage[]) => void;
+
+  setHistoryError: (chatKey: string, error: string) => void;
 };
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -70,6 +73,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setActiveChat: (chatKey) => {
     set({ activeChatKey: chatKey });
+    get().clearUnread(chatKey);
   },
 
   ensureChat: (chatKey, participants) => {
@@ -92,37 +96,66 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setHistory: (chatKey, messages) => {
     const chats = get().chats;
-    const chat = chats[chatKey];
-    if (!chat) return;
+    const chat = chats[chatKey] || {
+      participants: [get().me, chatKey],
+      messages: [],
+      unreadCount: 0,
+      hasLoadedHistory: false,
+    };
 
     set({
       chats: {
         ...chats,
         [chatKey]: {
           ...chat,
-          messages: messages, // Overwrite with full history or merge logic
+          messages: [...messages].sort((a, b) => a.timestamp - b.timestamp),
           hasLoadedHistory: true,
+          historyError: undefined,
           lastMessage: messages.length > 0 ? messages[messages.length - 1].message : chat.lastMessage,
         },
       },
     });
   },
 
-  addMessage: (chatKey, message) => {
+  setHistoryError: (chatKey, error) => {
     const chats = get().chats;
-
     const chat = chats[chatKey];
-
     if (!chat) return;
-
-    const isActive = get().activeChatKey === chatKey;
 
     set({
       chats: {
         ...chats,
         [chatKey]: {
           ...chat,
-          messages: [...chat.messages, message],
+          historyError: error,
+        },
+      },
+    });
+  },
+
+  addMessage: (chatKey, message) => {
+    const state = get();
+    const chats = state.chats;
+    const chat = chats[chatKey] || {
+      participants: [state.me, chatKey],
+      messages: [],
+      unreadCount: 0,
+      hasLoadedHistory: false,
+    };
+
+    const isActive = state.activeChatKey === chatKey;
+    
+    // Logic: If the chat isn't active, increment the unread counter
+    if (!isActive && message.sender !== state.me) {
+      state.incrementUnread(chatKey);
+    }
+
+    set({
+      chats: {
+        ...chats,
+        [chatKey]: {
+          ...chat,
+          messages: [...chat.messages, message].sort((a, b) => a.timestamp - b.timestamp),
           lastMessage: message.message,
           unreadCount: 0, // Legacy field reset, now using unreadCounts record
         },

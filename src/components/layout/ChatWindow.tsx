@@ -46,11 +46,23 @@ export default function ChatWindow() {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.sender === me ? "justify-end" : "justify-start"}`}>
-            <MessageBubble message={m} isOwn={m.sender === me} />
+        {messages.length > 0 ? (
+          <>
+            {messages.map((m, i) => (
+              <div key={`${m.timestamp}-${i}`} className={`flex flex-col ${m.sender === me ? "items-end" : "items-start"}`}>
+                <div className="text-[8px] font-mono text-zinc-500 mb-1 opacity-50 px-2">
+                  [{new Date(m.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}]
+                </div>
+                <MessageBubble message={m} isOwn={m.sender === me} />
+              </div>
+            ))}
+          </>
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center opacity-20 space-y-2">
+            <div className="text-[10px] font-mono uppercase tracking-[0.4em]">No previous logs found</div>
+            <div className="text-[8px] font-mono">Channel is clear for transmission...</div>
           </div>
-        ))}
+        )}
         <div ref={bottomRef} />
       </div>
     </div>
