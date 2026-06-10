@@ -6,7 +6,7 @@ const WS_URL = "wss://o3tx97i0uc.execute-api.us-east-1.amazonaws.com/dev";
 export function useWebSocket(nickname: string) {
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
-  const { setConnected, addMessage, setClients, setHistory } = useChatStore();
+  const { setConnected, addMessage, setClients, setHistory, setRefreshingClients } = useChatStore();
 
   const connect = useCallback(() => {
     if (!nickname) return;
@@ -68,6 +68,8 @@ export function useWebSocket(nickname: string) {
       };
       socketRef.current.send(JSON.stringify(payload));
       addMessage(recipient, { sender: nickname, message, timestamp: Date.now() });
+    } else {
+      console.error("TRANSMISSION_FAILED: Terminal connection is not OPEN.");
     }
   }, [nickname, addMessage]);
 
@@ -77,5 +79,12 @@ export function useWebSocket(nickname: string) {
     }
   }, []);
 
-  return { sendMessage, getHistory };
+  const refreshClients = useCallback(() => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      setRefreshingClients(true);
+      socketRef.current.send(JSON.stringify({ action: "listClients" }));
+    }
+  }, [setRefreshingClients]);
+
+  return { sendMessage, getHistory, refreshClients };
 }

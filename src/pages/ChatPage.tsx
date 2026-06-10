@@ -6,8 +6,18 @@ import { useChatStore } from "../store/chatStore";
 import { useEffect } from "react";
 
 export default function ChatPage() {
-  const { me, activeChatKey, chats, isConnected } = useChatStore();
-  const { sendMessage, getHistory } = useWebSocket(me);
+  const { me, activeChatKey, chats, isConnected, clients, setActiveChat } = useChatStore();
+  const { sendMessage, getHistory, refreshClients } = useWebSocket(me);
+
+  // Auto-select the first online user if no chat is active
+  useEffect(() => {
+    if (!activeChatKey && clients.length > 0) {
+      const firstOtherUser = clients.find((c) => c !== me);
+      if (firstOtherUser) {
+        setActiveChat(firstOtherUser);
+      }
+    }
+  }, [clients, activeChatKey, me, setActiveChat]);
 
   // Automatically trigger history fetch when a new chat is selected
   useEffect(() => {
@@ -21,7 +31,7 @@ export default function ChatPage() {
 
   return (
     <div className="h-screen bg-zinc-900 text-white flex">
-      <Sidebar />
+      <Sidebar onRefresh={refreshClients} />
 
       <div className="flex-1 flex flex-col">
         <ChatWindow />

@@ -7,13 +7,13 @@ import { useChatStore } from "./store/chatStore";
 export default function App() {
   const nickname = useAuthStore((state) => state.nickname);
   const setMe = useChatStore((state) => state.setMe);
+  const me = useChatStore((state) => state.me);
 
-  // Sync the auth nickname with the chat store identity
   useEffect(() => {
-    if (nickname) {
+    if (nickname && me !== nickname) {
       setMe(nickname);
     }
-  }, [nickname, setMe]);
+  }, [nickname, me, setMe]);
 
   if (!nickname) {
     return <LoginScreen onLogin={() => {}} />;

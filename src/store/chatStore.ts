@@ -7,6 +7,7 @@ type Chat = {
   lastMessage?: string;
   unreadCount: number;
   hasLoadedHistory?: boolean;
+  isLoadingHistory?: boolean;
   historyError?: string;
 };
 
@@ -20,6 +21,8 @@ type ChatState = {
   activeChatKey: string | null;
 
   isConnected: boolean;
+  isRefreshingClients: boolean;
+  setRefreshingClients: (status: boolean) => void;
   setConnected: (status: boolean) => void;
 
   unreadCounts: Record<string, number>;
@@ -39,6 +42,8 @@ type ChatState = {
   setHistory: (chatKey: string, messages: ChatMessage[]) => void;
 
   setHistoryError: (chatKey: string, error: string) => void;
+
+  setLoadingHistory: (chatKey: string, isLoading: boolean) => void;
 };
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -47,6 +52,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   chats: {},
   activeChatKey: null,
   isConnected: false,
+  isRefreshingClients: false,
   unreadCounts: {},
 
   incrementUnread: (nickname) =>
@@ -67,9 +73,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setMe: (me) => set({ me }),
 
-  setConnected: (status) => set({ isConnected: status }),
+  setConnected: (status) => set((state) => ({ 
+    isConnected: status,
+    isRefreshingClients: status ? state.isRefreshingClients : false 
+  })),
 
-  setClients: (clients) => set({ clients }),
+  setRefreshingClients: (status) => set({ isRefreshingClients: status }),
+
+  setClients: (clients) => set({ clients, isRefreshingClients: false }),
 
   setActiveChat: (chatKey) => {
     set({ activeChatKey: chatKey });
@@ -110,6 +121,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           ...chat,
           messages: [...messages].sort((a, b) => a.timestamp - b.timestamp),
           hasLoadedHistory: true,
+          isLoadingHistory: false,
           historyError: undefined,
           lastMessage: messages.length > 0 ? messages[messages.length - 1].message : chat.lastMessage,
         },
@@ -127,7 +139,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
         ...chats,
         [chatKey]: {
           ...chat,
+          isLoadingHistory: false,
           historyError: error,
+        },
+      },
+    });
+  },
+
+  setLoadingHistory: (chatKey, isLoading) => {
+    const chats = get().chats;
+    const chat = chats[chatKey];
+    if (!chat) return;
+
+    set({
+      chats: {
+        ...chats,
+        [chatKey]: {
+          ...chat,
+          isLoadingHistory: isLoading,
         },
       },
     });
