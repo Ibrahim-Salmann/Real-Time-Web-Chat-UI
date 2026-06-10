@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 type AuthState = {
   nickname: string;
-  setNickname: (name: string) => void;
+  setNickname: (name: string) => boolean;
   clearNickname: () => void;
 };
 
@@ -10,8 +10,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   nickname: localStorage.getItem("nickname") || "",
 
   setNickname: (name) => {
-    localStorage.setItem("nickname", name);
-    set({ nickname: name });
+    const sanitized = name.trim();
+    if (sanitized.toUpperCase() === "SYSTEM") {
+      return false;
+    }
+    localStorage.setItem("nickname", sanitized);
+    set({ nickname: sanitized });
+    return true;
   },
 
   clearNickname: () => {

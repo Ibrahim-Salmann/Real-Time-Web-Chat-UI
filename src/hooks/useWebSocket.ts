@@ -6,7 +6,7 @@ const WS_URL = "wss://o3tx97i0uc.execute-api.us-east-1.amazonaws.com/dev";
 export function useWebSocket(nickname: string) {
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
-  const { setConnected, addMessage, setClients, setHistory, setRefreshingClients } = useChatStore();
+  const { setConnected, addMessage, setClients, setHistory, setRefreshingClients, setTyping, updateMessageStatus } = useChatStore();
 
   const connect = useCallback(() => {
     if (!nickname) return;
@@ -33,6 +33,12 @@ export function useWebSocket(nickname: string) {
         case "history_result":
           setHistory(data.payload.chatKey, data.payload.messages);
           break;
+        case "user_typing":
+          setTyping(data.payload.sender, data.payload.isTyping);
+          break;
+        case "message_status_update":
+          updateMessageStatus(data.payload.chatKey, data.payload.timestamp, data.payload.status);
+          break;
       }
     };
 
@@ -51,7 +57,7 @@ export function useWebSocket(nickname: string) {
       console.error("TERMINAL_ERROR:", err);
       socket.close();
     };
-  }, [nickname, setConnected, setClients, addMessage, setHistory]);
+  }, [nickname, setConnected, addMessage, setClients, setHistory, setTyping, updateMessageStatus]);
 
   useEffect(() => {
     connect();
@@ -64,10 +70,10 @@ export function useWebSocket(nickname: string) {
         action: "sendMessage",
         recipient,
         message,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        status: 'sent' // Initial status for outgoing messages
       };
       socketRef.current.send(JSON.stringify(payload));
-      addMessage(recipient, { sender: nickname, message, timestamp: Date.now() });
     } else {
       console.error("TRANSMISSION_FAILED: Terminal connection is not OPEN.");
     }
@@ -86,5 +92,16 @@ export function useWebSocket(nickname: string) {
     }
   }, [setRefreshingClients]);
 
-  return { sendMessage, getHistory, refreshClients };
+  const sendTyping = useCallback((recipient: string, isTyping: boolean) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      const payload = {
+        action: "typing",
+        recipient,
+        isTyping
+      };
+      socketRef.current.send(JSON.stringify(payload));
+    }
+  }, []);
+
+  return { sendMessage, getHistory, refreshClients, sendTyping };
 }

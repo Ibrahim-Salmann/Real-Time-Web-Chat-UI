@@ -8,7 +8,7 @@ type Props = {
 };
 
 export default function Sidebar({ onRefresh }: Props) {
-  const { isConnected, me, setMe, isRefreshingClients } = useChatStore();
+  const { isConnected, me, setMe, isRefreshingClients, clients } = useChatStore();
   const clearNickname = useAuthStore((state) => state.clearNickname);
   const [isConfirming, setIsConfirming] = useState(false);
 
@@ -43,6 +43,11 @@ export default function Sidebar({ onRefresh }: Props) {
       <div className="p-4 border-b border-[#008F11]/20 flex items-center justify-between">
         <h2 className="text-[#00FF41] font-mono font-bold uppercase tracking-[0.3em] text-xs">
           Network // Nodes
+          <span className={`ml-2 font-normal tracking-normal lowercase transition-colors ${
+            isConnected ? "text-zinc-500 opacity-50" : "text-red-500 animate-pulse"
+          }`}>
+            [{clients.length}]
+          </span>
         </h2>
         <button
           onClick={onRefresh}

@@ -3,10 +3,12 @@ import MessageBubble from "../chat/MessageBubble";
 import { useEffect, useRef } from "react";
 
 export default function ChatWindow() {
-  const { chats, activeChatKey, me, isConnected } = useChatStore();
+  const { chats, activeChatKey, me, isConnected, typingStatus } = useChatStore();
 
   const chat = activeChatKey ? chats[activeChatKey] : null;
   const messages = chat?.messages || [];
+  const isRecipientTyping = activeChatKey ? typingStatus[activeChatKey] : false;
+
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,7 +55,7 @@ export default function ChatWindow() {
                 <div className="text-[8px] font-mono text-zinc-500 mb-1 opacity-50 px-2">
                   [{new Date(m.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}]
                 </div>
-                <MessageBubble message={m} isOwn={m.sender === me} />
+                <MessageBubble message={m} isOwn={m.sender === me} /> {/* Pass the full message object */}
               </div>
             ))}
           </>
@@ -61,6 +63,11 @@ export default function ChatWindow() {
           <div className="h-full flex flex-col items-center justify-center opacity-20 space-y-2">
             <div className="text-[10px] font-mono uppercase tracking-[0.4em]">No previous logs found</div>
             <div className="text-[8px] font-mono">Channel is clear for transmission...</div>
+          </div>
+        )}
+        {isRecipientTyping && (
+          <div className="text-[#00FF41] font-mono text-[10px] animate-pulse py-2">
+            &gt; {recipient} IS TRANSMITTING DATA...
           </div>
         )}
         <div ref={bottomRef} />

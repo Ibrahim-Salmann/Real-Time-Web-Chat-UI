@@ -6,6 +6,7 @@ export interface ChatMessage {
   sender: string;
   message: string;
   timestamp: number;
+  status?: 'sent' | 'delivered' | 'read'; // New: Delivery status
 }
 
 export interface IncomingMessage {

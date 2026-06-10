@@ -25,6 +25,9 @@ type ChatState = {
   setRefreshingClients: (status: boolean) => void;
   setConnected: (status: boolean) => void;
 
+  typingStatus: Record<string, boolean>;
+  setTyping: (nickname: string, isTyping: boolean) => void;
+
   unreadCounts: Record<string, number>;
 
   incrementUnread: (nickname: string) => void;
@@ -41,6 +44,8 @@ type ChatState = {
 
   setHistory: (chatKey: string, messages: ChatMessage[]) => void;
 
+  updateMessageStatus: (chatKey: string, timestamp: number, newStatus: ChatMessage['status']) => void;
+
   setHistoryError: (chatKey: string, error: string) => void;
 
   setLoadingHistory: (chatKey: string, isLoading: boolean) => void;
@@ -53,6 +58,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   activeChatKey: null,
   isConnected: false,
   isRefreshingClients: false,
+  typingStatus: {},
   unreadCounts: {},
 
   incrementUnread: (nickname) =>
@@ -73,6 +79,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setMe: (me) => set({ me }),
 
+  setTyping: (nickname, isTyping) =>
+    set((state) => ({
+      typingStatus: {
+        ...state.typingStatus,
+        [nickname]: isTyping,
+      },
+    })),
+
   setConnected: (status) => set((state) => ({ 
     isConnected: status,
     isRefreshingClients: status ? state.isRefreshingClients : false 
@@ -80,7 +94,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setRefreshingClients: (status) => set({ isRefreshingClients: status }),
 
-  setClients: (clients) => set({ clients, isRefreshingClients: false }),
+  setClients: (clients) => {
+    const oldClients = get().clients;
+    const disconnected = oldClients.filter((c) => !clients.includes(c));
+
+    disconnected.forEach((nickname) => {
+      if (get().chats[nickname]) {
+        get().addMessage(nickname, {
+          sender: "SYSTEM",
+          message: "NODE_DISCONNECTED // ENCRYPTED_SESSION_TERMINATED",
+          timestamp: Date.now(),
+        });
+      }
+    });
+
+    set({ clients, isRefreshingClients: false });
+  },
 
   setActiveChat: (chatKey) => {
     set({ activeChatKey: chatKey });
@@ -162,6 +191,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
   },
 
+  updateMessageStatus: (chatKey, timestamp, newStatus) => {
+    set((state) => {
+      const chat = state.chats[chatKey];
+      if (!chat) return state;
+
+      const updatedMessages = chat.messages.map((msg) =>
+        msg.timestamp === timestamp
+          ? { ...msg, status: newStatus }
+          : msg
+      );
+
+      return {
+        chats: {
+          ...state.chats,
+          [chatKey]: {
+            ...chat,
+            messages: updatedMessages,
+          },
+        },
+      };
+    });
+  },
+
   addMessage: (chatKey, message) => {
     const state = get();
     const chats = state.chats;
@@ -175,7 +227,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const isActive = state.activeChatKey === chatKey;
     
     // Logic: If the chat isn't active, increment the unread counter
-    if (!isActive && message.sender !== state.me) {
+    // Also, if it's an incoming message and not active, set status to 'delivered'
+    if (!isActive && message.sender !== state.me && message.status !== 'read') {
+      // For incoming messages, if not active, mark as delivered (or read if it was already read)
+      message.status = message.status || 'delivered'; 
       state.incrementUnread(chatKey);
     }
 
