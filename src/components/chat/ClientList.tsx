@@ -50,8 +50,10 @@ export default function ClientList() {
             <button
               key={username}
               onClick={() => setActiveChat(username)}
-              className={`w-full flex items-center justify-between p-4 border-b border-[#008F11]/10 transition-colors ${
-                isActive ? "bg-[#008F11]/20" : "hover:bg-[#008F11]/5"
+              className={`w-full flex items-center justify-between p-4 border-b transition-all ${
+                isActive
+                  ? "bg-[#008F11]/30 border-[#008F11]/50 border-l-[3px] border-l-[#00FF41]"
+                  : "border-[#008F11]/10 hover:bg-[#008F11]/10"
               }`}
             >
               <div className="flex items-center gap-3">

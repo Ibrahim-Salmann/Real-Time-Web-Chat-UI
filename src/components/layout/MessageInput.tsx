@@ -1,16 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import { useChatStore } from "../../store/chatStore";
 
-export default function MessageInput({ 
-  onSend, 
-  onTyping 
-}: { 
+export default function MessageInput({
+  onSend,
+  onTyping
+}: {
   onSend: (msg: string) => void;
   onTyping: (isTyping: boolean) => void;
 }) {
   const [text, setText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { activeChatKey } = useChatStore();
 
   // Cleanup typing timeout on unmount or when switching chats
@@ -21,9 +22,10 @@ export default function MessageInput({
   }, []);
 
   useEffect(() => {
-    // If the chat changes, reset the local typing state
+    // If the chat changes, reset the local typing state and focus
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     setIsTyping(false);
+    inputRef.current?.focus();
   }, [activeChatKey]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,10 +62,12 @@ export default function MessageInput({
       <span className="text-[#00FF41] font-mono font-bold">{">"}</span>
       <div className="flex-1 relative">
         <input
-          className="w-full bg-transparent border-b border-[#008F11]/50 p-2 text-[#00FF41] font-mono outline-none focus:border-[#00FF41] transition-colors placeholder:text-[#008F11]/30"
+          ref={inputRef}
+          disabled={!activeChatKey}
+          className="w-full bg-transparent border-b border-[#008F11]/50 p-2 text-[#00FF41] font-mono outline-none focus:border-[#00FF41] transition-colors placeholder:text-[#008F11]/30 disabled:opacity-50 disabled:cursor-not-allowed"
           value={text}
           onChange={handleInputChange}
-          placeholder="Input data packet..."
+          placeholder={activeChatKey ? "Input data packet..." : "Select a chat..."}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
         />
       </div>

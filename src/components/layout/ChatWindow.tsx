@@ -66,8 +66,13 @@ export default function ChatWindow() {
           </div>
         )}
         {isRecipientTyping && (
-          <div className="text-[#00FF41] font-mono text-[10px] animate-pulse py-2">
-            &gt; {recipient} IS TRANSMITTING DATA...
+          <div className="flex items-center gap-1 text-[#00FF41] font-mono text-[10px] py-2">
+            <span>&gt; {recipient}</span>
+            <span className="flex gap-0.5">
+              <span className="animate-bounce" style={{ animationDelay: "0ms" }}>·</span>
+              <span className="animate-bounce" style={{ animationDelay: "150ms" }}>·</span>
+              <span className="animate-bounce" style={{ animationDelay: "300ms" }}>·</span>
+            </span>
           </div>
         )}
         <div ref={bottomRef} />

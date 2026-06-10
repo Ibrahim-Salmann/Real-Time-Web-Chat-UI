@@ -15,14 +15,22 @@ export default function MessageBubble({ message, isOwn }: Props) {
   }
 
   const statusIndicator = () => {
-    if (!isOwn || !message.status) return null;
+    if (!isOwn) return null;
+
+    let icon = "◌"; // pending
     let colorClass = "text-zinc-500";
-    if (message.status === 'delivered') colorClass = "text-[#00FF41]"; // Green for delivered
-    if (message.status === 'read') colorClass = "text-blue-400"; // Blue for read
+
+    if (message.status === 'delivered') {
+      icon = "✓";
+      colorClass = "text-[#00FF41]";
+    } else if (message.status === 'read') {
+      icon = "✓✓";
+      colorClass = "text-blue-400";
+    }
 
     return (
-      <span className={`text-[8px] font-mono ml-2 ${colorClass}`}>
-        [{message.status.toUpperCase()}]
+      <span className={`text-[9px] font-mono ml-2 ${colorClass} opacity-70 hover:opacity-100 transition-opacity`}>
+        {icon}
       </span>
     );
   };
